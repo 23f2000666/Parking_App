@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Manage Parking Lots</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLotModal">
+        Add New Lot
+    </button>
+</div>
+
+<div class="modal fade" id="addLotModal" tabindex="-1" aria-labelledby="addLotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Add New Parking Lot</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <form action="{{ url_for('admin.add_lot') }}" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.location.label(class="form-label") }}{{ form.location(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.capacity.label(class="form-label") }}{{ form.capacity(class="form-control") }}</div>
+                    <div class="mb-3">{{ form.price_per_hour.label(class="form-label") }}{{ form.price_per_hour(class="form-control") }}</div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>{{ form.submit(class="btn btn-primary") }}</div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editLotModal" tabindex="-1" aria-labelledby="editLotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Edit Parking Lot</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <form id="editLotForm" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(id="edit_name", class="form-control") }}</div>
+                    <div class="mb-3">{{ form.location.label(class="form-label") }}{{ form.location(id="edit_location", class="form-control") }}</div>
+                    <div class="mb-3">{{ form.capacity.label(class="form-label") }}{{ form.capacity(id="edit_capacity", class="form-control") }}</div>
+                    <div class="mb-3">{{ form.price_per_hour.label(class="form-label") }}{{ form.price_per_hour(id="edit_price", class="form-control") }}</div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>{{ form.submit(value="Save Changes", class="btn btn-primary") }}</div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteLotModal" tabindex="-1" aria-labelledby="deleteLotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Confirm Deletion</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the lot: <strong id="deleteLotName"></strong>? This action cannot be undone.</p>
+                <form id="deleteLotForm" method="post">
+                    {{ delete_form.hidden_tag() }}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        {{ delete_form.submit(value="Delete Lot", class="btn btn-danger") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Existing Lots</h5>
+        {% if lots %}
+        <table class="table table-hover align-middle">
+            <thead><tr><th>Name</th><th>Location</th><th>Capacity</th><th>Price/Hour</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for lot in lots %}
+                <tr>
+                    <td>{{ lot.name }}</td><td>{{ lot.location }}</td><td>{{ lot.capacity }}</td><td>${{ "%.2f"|format(lot.price_per_hour) }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.view_lot_spots', lot_id=lot.id) }}" class="btn btn-sm btn-info">View Spots</a>
+                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editLotModal"
+                            data-lot-id="{{ lot.id }}" data-lot-name="{{ lot.name }}" data-lot-location="{{ lot.location }}" data-lot-capacity="{{ lot.capacity }}" data-lot-price="{{ lot.price_per_hour }}">
+                            Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteLotModal"
+                            data-lot-id="{{ lot.id }}" data-lot-name="{{ lot.name }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-center">No parking lots have been created yet. Add one to get started!</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var editLotModal = document.getElementById('editLotModal');
+    editLotModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var lotId = button.getAttribute('data-lot-id');
+        var name = button.getAttribute('data-lot-name');
+        var location = button.getAttribute('data-lot-location');
+        var capacity = button.getAttribute('data-lot-capacity');
+        var price = button.getAttribute('data-lot-price');
+        
+        var form = editLotModal.querySelector('#editLotForm');
+        form.action = '/admin/lots/edit/' + lotId;
+        
+        editLotModal.querySelector('#edit_name').value = name;
+        editLotModal.querySelector('#edit_location').value = location;
+        editLotModal.querySelector('#edit_capacity').value = capacity;
+        editLotModal.querySelector('#edit_price').value = price;
+    });
+
+    var deleteLotModal = document.getElementById('deleteLotModal');
+    deleteLotModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var lotId = button.getAttribute('data-lot-id');
+        var lotName = button.getAttribute('data-lot-name');
+        
+        var form = deleteLotModal.querySelector('#deleteLotForm');
+        form.action = '/admin/lots/delete/' + lotId;
+        
+        deleteLotModal.querySelector('#deleteLotName').textContent = lotName;
+    });
+});
+</script>
+{% endblock %}
